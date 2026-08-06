@@ -1,0 +1,119 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { ServerURL } from "../App";
+import { FaArrowLeft } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
+
+function InterviewHistory() {
+  const [interviews, setInterviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const getMyInterviews = async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const result = await axios.get(
+          ServerURL + "/api/interview/get-interview",
+          { withCredentials: true },
+        );
+        setInterviews(result.data);
+      } catch (err) {
+        console.log(err);
+        setError("Failed to load interview history. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    getMyInterviews();
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-teal-50 py-10">
+      <div className="w-[90vw] lg:w-[70vw] max-w-[90%] mx-auto">
+        <div className="mb-10 w-full flex items-center gap-4 flex-wrap">
+          <button
+            onClick={() => navigate("/")}
+            className="mt-1 p-3 rounded-full bg-white shadow hover:shadow-md transition"
+          >
+            <FaArrowLeft className="text-gray-600" />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold text-gray-800">
+              Interview History
+            </h1>
+            <p className="text-gray-500 mt-2">
+              Track your past interviews and performance reports
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="bg-white p-10 rounded-2xl shadow text-center">
+            <p className="text-gray-500">Loading your interviews...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-white p-10 rounded-2xl shadow text-center">
+            <p className="text-red-500">{error}</p>
+          </div>
+        ) : interviews.length === 0 ? (
+          <div className="bg-white p-10 rounded-2xl shadow text-center">
+            <p className="text-gray-500">
+              No interviews found. Start your first interview.
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-6">
+            {interviews.map((item) => (
+              <div
+                onClick={() => navigate(`/report/${item._id}`)}
+                key={item._id}
+                className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-gray-100"
+              >
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                  {/* left side */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">
+                      {item.role}
+                    </h3>
+                    <p className="text-gray-500 text-sm mt-1">
+                      {item.experience} ⏺ {item.mode}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {new Date(item.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-6">
+                    {/* score */}
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-teal-600">
+                        {item.finalScore || 0}/10
+                      </p>
+                      <p className="text-xs text-gray-400">Overall Score</p>
+                    </div>
+
+                    {/* status badge */}
+                    <span
+                      className={`px-4 py-1 rounded-full text-xs font-medium ${
+                        item.status === "completed"
+                          ? "bg-teal-100 text-teal-700"
+                          : "bg-yellow-100 text-yellow-700"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default InterviewHistory;
