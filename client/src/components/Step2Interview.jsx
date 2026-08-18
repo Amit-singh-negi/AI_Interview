@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import { motion } from "motion/react";
 import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
-import { BsArrowRight } from "react-icons/bs";
+import { BsArrowRight, BsCheckCircle } from "react-icons/bs";
 import maleVideo from "../assets/videos/male-ai.mp4";
 import femaleVideo from "../assets/videos/female-ai.mp4";
 import { ServerURL } from "../App";
@@ -24,11 +24,13 @@ function Step2Interview({ interviewData, onFinish }) {
   const [voiceGender, setVoiceGender] = useState("female");
   const [subtitle, setSubtitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
 
   const currentQuestion = questions[currentIndex];
+  const isLastQuestion = currentIndex === questions.length - 1;
   const videoSource = voiceGender === "male" ? maleVideo : femaleVideo;
 
   // ---------------------- voice selection ----------------------
@@ -37,7 +39,6 @@ function Step2Interview({ interviewData, onFinish }) {
       const voices = window.speechSynthesis.getVoices();
       if (!voices.length) return;
 
-      // try known female voices first
       const femaleVoice = voices.find(
         (v) =>
           v.name.toLocaleLowerCase().includes("zira") ||
@@ -50,7 +51,6 @@ function Step2Interview({ interviewData, onFinish }) {
         return;
       }
 
-      // try known male voices
       const maleVoice = voices.find(
         (v) =>
           v.name.toLocaleLowerCase().includes("david") ||
@@ -63,7 +63,6 @@ function Step2Interview({ interviewData, onFinish }) {
         return;
       }
 
-      // fallback: first available voice
       setSelectedVoice(voices[0]);
       setVoiceGender("female");
     };
@@ -126,13 +125,12 @@ function Step2Interview({ interviewData, onFinish }) {
       }
       window.speechSynthesis.cancel();
 
-      // add natural pauses after commas and periods
       const humanText = text.replace(/,/g, ", ...").replace(/\./g, ". ...");
       const utterance = new SpeechSynthesisUtterance(humanText);
 
       utterance.voice = selectedVoice;
-      utterance.rate = 0.92; // slightly slower than normal
-      utterance.pitch = 1.05; // small warmth
+      utterance.rate = 0.92;
+      utterance.pitch = 1.05;
       utterance.volume = 1;
 
       utterance.onstart = () => {
@@ -175,8 +173,7 @@ function Step2Interview({ interviewData, onFinish }) {
       } else if (currentQuestion) {
         await new Promise((r) => setTimeout(r, 800));
 
-        // last question is the hard one
-        if (currentIndex === questions.length - 1) {
+        if (isLastQuestion) {
           await speakText("Alright, this one might be a bit more challenging.");
         }
         await speakText(currentQuestion.question);
@@ -205,7 +202,6 @@ function Step2Interview({ interviewData, onFinish }) {
     return () => clearInterval(timer);
   }, [isIntroPhase, currentIndex, currentQuestion]);
 
-  // reset timer whenever we land on a new question (including leaving intro)
   useEffect(() => {
     if (!isIntroPhase && currentQuestion) {
       setTimeLeft(currentQuestion.timeLimit || 60);
@@ -216,6 +212,7 @@ function Step2Interview({ interviewData, onFinish }) {
   const submitAnswer = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    setSubmitError("");
 
     try {
       const result = await axios.post(
@@ -232,6 +229,10 @@ function Step2Interview({ interviewData, onFinish }) {
       await speakText(result.data.feedback);
     } catch (error) {
       console.log(error);
+      setSubmitError(
+        error.response?.data?.message ||
+          "Failed to submit your answer. Please try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -265,7 +266,7 @@ function Step2Interview({ interviewData, onFinish }) {
     setAnswer("");
     setFeedback("");
 
-    if (currentIndex + 1 >= questions.length) {
+    if (isLastQuestion) {
       finishInterview();
       return;
     }
@@ -375,23 +376,30 @@ function Step2Interview({ interviewData, onFinish }) {
           />
 
           {!feedback ? (
-            <div className="flex items-center gap-4 mt-6">
-              <motion.button
-                onClick={toggleMic}
-                whileTap={{ scale: 0.9 }}
-                className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-black text-white shadow-lg"
-              >
-                {isMicOn ? <FaMicrophone size={20} /> : <FaMicrophoneSlash size={20} />}
-              </motion.button>
+            <div className="mt-6">
+              {submitError && (
+                <p className="text-sm text-red-600 text-center mb-3">
+                  {submitError}
+                </p>
+              )}
+              <div className="flex items-center gap-4">
+                <motion.button
+                  onClick={toggleMic}
+                  whileTap={{ scale: 0.9 }}
+                  className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-black text-white shadow-lg"
+                >
+                  {isMicOn ? <FaMicrophone size={20} /> : <FaMicrophoneSlash size={20} />}
+                </motion.button>
 
-              <motion.button
-                onClick={submitAnswer}
-                disabled={isSubmitting}
-                whileTap={{ scale: 0.95 }}
-                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-3 sm:py-4 rounded-2xl shadow-lg hover:opacity-90 transition font-semibold disabled:bg-gray-500"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Answer"}
-              </motion.button>
+                <motion.button
+                  onClick={submitAnswer}
+                  disabled={isSubmitting}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-500 text-white py-3 sm:py-4 rounded-2xl shadow-lg hover:opacity-90 transition font-semibold disabled:bg-gray-500"
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Answer"}
+                </motion.button>
+              </div>
             </div>
           ) : (
             <motion.div
@@ -405,7 +413,15 @@ function Step2Interview({ interviewData, onFinish }) {
                 onClick={handleNext}
                 className="w-full bg-gradient-to-r from-teal-600 to-teal-500 text-white py-3 rounded-xl shadow-md hover:opacity-90 transition flex items-center justify-center gap-1"
               >
-                Next Question <BsArrowRight size={18} />
+                {isLastQuestion ? (
+                  <>
+                    Finish Interview <BsCheckCircle size={18} />
+                  </>
+                ) : (
+                  <>
+                    Next Question <BsArrowRight size={18} />
+                  </>
+                )}
               </button>
             </motion.div>
           )}
@@ -416,4 +432,5 @@ function Step2Interview({ interviewData, onFinish }) {
 }
 
 export default Step2Interview;
+
 

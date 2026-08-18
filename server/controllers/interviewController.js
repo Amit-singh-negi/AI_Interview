@@ -4,10 +4,26 @@ import { askAi } from "../services/openRouter.services.js";
 import User from "../models/userModel.js";
 import Interview from "../models/interviewModel.js";
 
-// Helper: AI responses sometimes wrap JSON in ```json ... ``` fences
+// Helper: AI responses sometimes wrap JSON in ```json ... ``` fences,
+// or add stray prose before/after the JSON object. Extract the {...} block directly.
 const parseAiJson = (raw) => {
   const cleaned = raw.replace(/```json/g, "").replace(/```/g, "").trim();
-  return JSON.parse(cleaned);
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+
+  if (start === -1 || end === -1 || end < start) {
+    console.error("AI response did not contain a JSON object:", raw);
+    throw new Error("AI response was not valid JSON.");
+  }
+
+  const jsonSlice = cleaned.slice(start, end + 1);
+
+  try {
+    return JSON.parse(jsonSlice);
+  } catch (err) {
+    console.error("Failed to parse AI JSON:", jsonSlice, err.message);
+    throw new Error("AI response was not valid JSON.");
+  }
 };
 
 export const analyzeResume = async (req, res) => {
@@ -328,9 +344,10 @@ export const submitAnswer = async (req, res) => {
 
     return res.status(200).json({ feedback: parsed.feedback });
   } catch (error) {
+    console.error("submitAnswer Error:", error);
     return res
       .status(500)
-      .json({ message: `Failed to submit answer: ${error}` });
+      .json({ message: `Failed to submit answer: ${error.message}` });
   }
 };
 
@@ -387,9 +404,10 @@ export const finishInterview = async (req, res) => {
       })),
     });
   } catch (error) {
+    console.error("finishInterview Error:", error);
     return res
       .status(500)
-      .json({ message: `Failed to finish interview: ${error}` });
+      .json({ message: `Failed to finish interview: ${error.message}` });
   }
 };
 
@@ -434,8 +452,19 @@ export const getInterviewReport = async (req, res) => {
       ? totalCorrectness / totalQuestions
       : 0;
 
+    // fall back to computing finalScore live if it was never saved
+    // (e.g. finishInterview wasn't called/completed for this record)
+    let finalScore = interview.finalScore || 0;
+    if (!finalScore && totalQuestions) {
+      const totalScore = interview.questions.reduce(
+        (sum, q) => sum + (q.score || 0),
+        0,
+      );
+      finalScore = totalScore / totalQuestions;
+    }
+
     return res.json({
-      finalScore: interview.finalScore || 0,
+      finalScore: Number(finalScore.toFixed(1)),
       confidence: Number(avgConfidence.toFixed(1)),
       communication: Number(avgCommunication.toFixed(1)),
       correctness: Number(avgCorrectness.toFixed(1)),
