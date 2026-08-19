@@ -3,7 +3,6 @@ import axios from "axios";
 import { motion } from "motion/react";
 import { FaMicrophone, FaMicrophoneSlash } from "react-icons/fa";
 import { BsArrowRight, BsCheckCircle } from "react-icons/bs";
-import maleVideo from "../assets/videos/male-ai.mp4";
 import femaleVideo from "../assets/videos/female-ai.mp4";
 import { ServerURL } from "../App";
 import Timer from "./Timer";
@@ -20,7 +19,6 @@ function Step2Interview({ interviewData, onFinish }) {
   const [feedback, setFeedback] = useState("");
   const [timeLeft, setTimeLeft] = useState(questions[0]?.timeLimit || 60);
 
-  const [voiceGender, setVoiceGender] = useState("female");
   const [voiceReady, setVoiceReady] = useState(false);
   const [subtitle, setSubtitle] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,37 +31,23 @@ function Step2Interview({ interviewData, onFinish }) {
 
   const currentQuestion = questions[currentIndex];
   const isLastQuestion = currentIndex === questions.length - 1;
-  const videoSource = voiceGender === "male" ? maleVideo : femaleVideo;
+  const videoSource = femaleVideo;
 
   // ---------------------- voice selection ----------------------
-  // Only determine gender here. The actual SpeechSynthesisVoice object is
-  // re-resolved fresh in speakText() at speak-time, because some browsers
-  // (notably Safari) silently invalidate previously-grabbed voice objects
-  // once the voice list reloads, causing playback to fall back to the
-  // default system voice while leaving our "gender" state (and thus the
-  // avatar video) unchanged — the mismatch this fixes.
-  const resolveVoiceForGender = (gender) => {
+  // Always resolves a female-sounding voice fresh at speak-time, because
+  // some browsers (notably Safari) silently invalidate previously-grabbed
+  // voice objects once the voice list reloads, causing playback to fall
+  // back to the default system voice.
+  const resolveFemaleVoice = () => {
     const voices = window.speechSynthesis.getVoices();
     if (!voices.length) return null;
-
-    if (gender === "female") {
-      return (
-        voices.find(
-          (v) =>
-            v.name.toLocaleLowerCase().includes("zira") ||
-            v.name.toLocaleLowerCase().includes("samantha") ||
-            v.name.toLocaleLowerCase().includes("female"),
-        ) || voices[0]
-      );
-    }
 
     return (
       voices.find(
         (v) =>
-          v.name.toLocaleLowerCase().includes("david") ||
-          v.name.toLocaleLowerCase().includes("mark") ||
-          (v.name.toLocaleLowerCase().includes("male") &&
-            !v.name.toLocaleLowerCase().includes("female")),
+          v.name.toLocaleLowerCase().includes("zira") ||
+          v.name.toLocaleLowerCase().includes("samantha") ||
+          v.name.toLocaleLowerCase().includes("female"),
       ) || voices[0]
     );
   };
@@ -72,23 +56,6 @@ function Step2Interview({ interviewData, onFinish }) {
     const loadVoices = () => {
       const voices = window.speechSynthesis.getVoices();
       if (!voices.length) return;
-
-      const hasFemale = voices.some(
-        (v) =>
-          v.name.toLocaleLowerCase().includes("zira") ||
-          v.name.toLocaleLowerCase().includes("samantha") ||
-          v.name.toLocaleLowerCase().includes("female"),
-      );
-      const hasMale = voices.some(
-        (v) =>
-          v.name.toLocaleLowerCase().includes("david") ||
-          v.name.toLocaleLowerCase().includes("mark") ||
-          (v.name.toLocaleLowerCase().includes("male") &&
-            !v.name.toLocaleLowerCase().includes("female")),
-      );
-
-      const gender = hasFemale ? "female" : hasMale ? "male" : "female";
-      setVoiceGender(gender);
       setVoiceReady(true);
     };
 
@@ -144,7 +111,7 @@ function Step2Interview({ interviewData, onFinish }) {
   // ---------------------- speak function ----------------------
   const speakText = (text) => {
     return new Promise((resolve) => {
-      const voice = resolveVoiceForGender(voiceGender);
+      const voice = resolveFemaleVoice();
       if (!window.speechSynthesis || !voice) {
         resolve();
         return;
