@@ -10,7 +10,7 @@ import InterviewHistory from "./pages/InterviewHistory";
 import Pricing from "./pages/Pricing";
 import InterviewReport from "./pages/InterviewReport";
 
-export const ServerURL = "https://ai-interview-uqt8.onrender.com";
+export const ServerURL = "https//localhost:8000";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -34,10 +34,10 @@ const App = () => {
     <Routes>
       <Route path="/" element={<Home />} />
       <Route path="/auth" element={<Auth />} />
-      <Route path="/interview" element={<InterviewPage/>} />
-      <Route path="/history" element={<InterviewHistory/>} />
-      <Route path="/pricing" element={<Pricing/>} />
-      <Route path="/report/:id" element={<InterviewReport/>} />
+      <Route path="/interview" element={<InterviewPage />} />
+      <Route path="/history" element={<InterviewHistory />} />
+      <Route path="/pricing" element={<Pricing />} />
+      <Route path="/report/:id" element={<InterviewReport />} />
     </Routes>
   );
 };
