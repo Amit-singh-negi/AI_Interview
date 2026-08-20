@@ -1,16 +1,13 @@
 
-
-
 import { initializeApp } from "firebase/app";
 import {getAuth, GoogleAuthProvider} from "firebase/auth"
-
 const firebaseConfig = {
   apiKey:import.meta.env.VITE_FIREBASE_APIKEY,
-  authDomain: "aiinterview-cb7b4.firebaseapp.com",
-  projectId: "aiinterview-cb7b4",
-  storageBucket: "aiinterview-cb7b4.firebasestorage.app",
-  messagingSenderId: "590362461867",
-  appId: "1:590362461867:web:448baeece209ac8d8059ee"
+  authDomain: "interviewai-25f98.firebaseapp.com",
+  projectId: "interviewai-25f98",
+  storageBucket: "interviewai-25f98.firebasestorage.app",
+  messagingSenderId: "506032534104",
+  appId: "1:506032534104:web:89cf4e817b329c921e902d"
 };
 
 const app = initializeApp(firebaseConfig);

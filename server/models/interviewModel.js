@@ -29,6 +29,10 @@ const questionsSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  correctness: {
+    type: Number,
+    default: 0,
+  },
 });
 
 const interviewSchema = new mongoose.Schema(
@@ -61,8 +65,8 @@ const interviewSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Incompleted", "Completed"],
-      default: "Incompleted",
+      enum: ["incomplete", "completed"],
+      default: "incomplete",
     },
   },
   {

@@ -14,8 +14,8 @@ import User from '../models/userModel.js'
         let token = await genToken(user._id)
       res.cookie("token", token, {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production", 
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure:false, 
+  sameSite:"strict",
   maxAge: 7 * 24 * 60 * 60 * 1000
 })
         return res.status(200).json(user)
@@ -30,8 +30,8 @@ import User from '../models/userModel.js'
     try {
         await res.clearCookie("token", {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+  secure:false,
+  sameSite:"strict",
 })
         return res.status(200).json({message:"LogOut Successfully"})
     } catch (error) {
